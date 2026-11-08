@@ -38,7 +38,8 @@ Optional keys, entered in the plugin settings (`/plugin` → Tempovision → con
 
 - **fal** for generated images and footage, image-to-video and upscaling (pay per use, capped by the budget in
   your brief).
-- **Pexels** (free) for stock footage search. Openverse, NASA, The Met, the Art Institute of Chicago and
+- **Pixabay** or **Pexels** (both free; either is enough) for stock footage and photo search. Get a Pixabay key
+  by logging in at [pixabay.com/api/docs](https://pixabay.com/api/docs/). Openverse, NASA, The Met, the Art Institute of Chicago and
   Wikimedia Commons work without keys.
 
 ## What's inside
@@ -74,7 +75,7 @@ tempovision palette   colours from cover art, roles, contrast pairs; --check two
 tempovision sheet     contact sheets: grid, frame-by-frame range, a section's key frames, review set (beats, cuts, phone)
 tempovision qa        format, audio present, A/V offset vs master, loudness vs master, black, freeze, first frame,
                   cuts vs beats and sung words, lyric cues (stale exports, nothing appearing when a line is sung)
-tempovision assets    licence ledger: add, fetch, search (Openverse, Pexels, NASA, Met, AIC, Commons), check, credits
+tempovision assets    licence ledger: add, fetch, search (Openverse, Pexels, Pixabay, NASA, Met, AIC, Commons), check, credits
 tempovision deliver   ProRes master, YouTube, vertical, square, Spotify Canvas, thumbnail, poster from the final
                   render + the untouched master audio; each file re-checked for duration and sync
 ```
@@ -108,12 +109,12 @@ setup list what the brief needs, does lyric sync trigger) live in `evals/` and r
 Tempovision runs on your machine. It sends nothing anywhere by itself. Your song and lyrics are processed locally
 (stems, alignment, analysis, renders). Network calls happen only when you use a service: the fal MCP server when
 you approve generation (prompts and reference images go to fal, under [fal's terms and privacy
-policy](https://fal.ai/privacy)), Pexels and the open archives when searching for assets, and the package and model
+policy](https://fal.ai/privacy)), Pexels, Pixabay and the open archives when searching for assets, and the package and model
 hosts during setup.
 
 ## Licence
 
 MIT. Tempovision orchestrates other tools under their own licences: Demucs (MIT), WhisperX (BSD-2), wav2vec2 models
 (per model), stable-ts (MIT), HyperFrames (Apache-2.0), Remotion (Remotion licence: free for individuals and
-companies up to 3 people), the fal and Pexels services (their terms). Assets you use are governed by their own
+companies up to 3 people), the fal, Pexels and Pixabay services (their terms). Assets you use are governed by their own
 licences, recorded per file in your project's ledger.

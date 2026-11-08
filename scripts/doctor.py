@@ -41,6 +41,7 @@ HOSTS = {
     "dl.fbaipublicfiles.com": "Demucs stem models",
     "mcp.fal.ai": "fal MCP server (generation)",
     "api.pexels.com": "Pexels search",
+    "pixabay.com": "Pixabay search",
     "api.openverse.org": "Openverse search (CC media)",
     "fonts.googleapis.com": "Google Fonts",
 }
@@ -190,11 +191,14 @@ def check_mcp() -> dict:
 
 
 def check_stock(mcp: dict) -> dict:
-    st = mcp.get("pexels") or (OK if os.environ.get("PEXELS_API_KEY") else UNKNOWN)
-    return item("stock", "Stock footage search (Pexels)", st,
-                {OK: "connected", WARN: "configured but not connected", UNKNOWN: "check /mcp"}[st],
+    found = [name for name, ok in (("Pexels MCP", mcp.get("pexels") == OK), ("Pexels key", os.environ.get("PEXELS_API_KEY")),
+                                   ("Pixabay key", os.environ.get("PIXABAY_API_KEY"))) if ok]
+    st = OK if found else (mcp.get("pexels") or UNKNOWN)
+    return item("stock", "Stock footage search (Pexels or Pixabay)", st,
+                ", ".join(found) if found else {WARN: "Pexels configured but not connected", UNKNOWN: "no key found"}[st],
                 "real footage and photos for the shot list (Openverse and archives work without a key)",
-                "free key: https://www.pexels.com/api/  → /plugin → Tempovision → configure → Pexels API key")
+                "free key from either: https://pixabay.com/api/docs/ (log in, copy the key) or https://www.pexels.com/api/"
+                "  → /plugin → Tempovision → configure → Pixabay / Pexels API key; then start a new session")
 
 
 def check_genai(mcp: dict) -> dict:

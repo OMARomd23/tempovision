@@ -20,8 +20,9 @@ delivery resolution, whether the release is commercial, and the project folder. 
 - Search for what the shot needs to look like (light, motion direction, framing, texture, period), never for the
   lyric's abstract words.
 - Use the Pexels MCP tools when available; otherwise `tempovision assets search "<query>" --source <source>` (it
-  queries Openverse, Pexels, NASA, The Met, Art Institute of Chicago and Wikimedia Commons APIs and prints
-  results with licences), and WebSearch/WebFetch for anything else.
+  queries Openverse, Pexels, Pixabay, NASA, The Met, Art Institute of Chicago and Wikimedia Commons APIs and
+  prints results with licences), and WebSearch/WebFetch for anything else. For stock, `--source pixabay` works
+  whenever a Pixabay key is set; if a source says its key is missing, move on to the next one.
 - Reject on sight: below the delivery resolution, burned-in text or watermarks, logos, recognisable people
   without a release (for commercial work), shaky or compressed footage, anything off-palette that a grade cannot
   fix, any non-commercial licence when the release is commercial.

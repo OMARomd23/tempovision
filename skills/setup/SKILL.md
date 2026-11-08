@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Check and prepare this computer for making a music video with Tempovision. Lists what is installed and what is missing (Python/uv, FFmpeg, Node, HyperFrames or Remotion and their skills, Demucs stems, WhisperX lyric alignment, GPU, fal and Pexels keys, auto mode), explains what each unlocks, and installs what the person approves. Use it when the person asks to set up, check or repair Tempovision, before a first project, or when a tempovision tool reports something missing.
+description: Check and prepare this computer for making a music video with Tempovision. Lists what is installed and what is missing (Python/uv, FFmpeg, Node, HyperFrames or Remotion and their skills, Demucs stems, WhisperX lyric alignment, GPU, fal, Pexels and Pixabay keys, auto mode), explains what each unlocks, and installs what the person approves. Use it when the person asks to set up, check or repair Tempovision, before a first project, or when a tempovision tool reports something missing.
 argument-hint: "[path to BRIEF.md]"
 ---
 

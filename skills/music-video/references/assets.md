@@ -17,7 +17,10 @@
 - `tempovision:asset-scout` searches categories in parallel and returns a shortlist with licence notes; give it
   the shot list rows and the spec's palette and medium.
 - Pexels MCP (`pexels_search_videos`, photos) when the key is set; otherwise `tempovision assets search "<query>"
-  --source openverse|pexels|nasa|met|aic|commons`.
+  --source openverse|pexels|pixabay|nasa|met|aic|commons`. For stock footage and photos, use whichever of Pexels
+  and Pixabay has a key (`tempovision doctor` shows which); search both when both do, since their libraries differ.
+  Pixabay image URLs from the API stop at 1280 px: for a full-frame hero image, have the person download the
+  original from the item's page.
 - Search for what the shot needs (light, texture, motion direction, framing), not for the lyric's literal
   words. "Slow handheld push through tall grass, golden backlight" finds usable footage; "freedom" does not.
 - Prefer clips longer than the shot, at or above the delivery resolution, with no burned-in text, logos or

@@ -9,13 +9,15 @@
   tempovision assets add PATH --generated --model "fal-ai/flux-pro" --prompt-file prompts/c1-03.txt --seed 42 --cost 0.05
   tempovision assets add PATH --own --author "the artist"
   tempovision assets fetch URL --license "Pexels License" --source "Pexels" --page PAGE_URL [--author NAME] [--kind footage]
-  tempovision assets search "slow push through tall grass golden light" --source openverse|pexels|nasa|met|aic|commons [--type image|video]
+  tempovision assets search "slow push through tall grass golden light" --source openverse|pexels|pixabay|nasa|met|aic|commons [--type image|video]
   tempovision assets list
   tempovision assets check            fails on unrecorded files, non-commercial licences in a commercial project, missing attribution
   tempovision assets credits          paste-ready credits for the video description
 
-Search uses each source's public API from this machine (Pexels needs PEXELS_API_KEY in the environment; the
-Pexels MCP server is the other route). Always open the item's page and read its licence before using it.
+Search uses each source's public API from this machine. Pexels needs PEXELS_API_KEY and Pixabay needs
+PIXABAY_API_KEY in the environment; the session-start hook sets both from the plugin settings (the Pexels MCP
+server is the other Pexels route). Pixabay results are cached for 24 hours, as its API terms require.
+Always open the item's page and read its licence before using it.
 """
 from __future__ import annotations
 
@@ -26,12 +28,14 @@ import mimetypes
 import os
 import re
 import sys
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _common import Fail, find_project, info, load_json, now_iso, save_json, table  # noqa: E402
+from _common import Fail, find_project, info, load_json, now_iso, plugin_data_dir, save_json, table  # noqa: E402
 
 UA = "tempovision-music-video/0.1 (+https://github.com; asset search for a music video)"
 KIND_DIRS = {"font": "fonts", "image": "images", "footage": "footage", "texture": "textures", "sfx": "sfx",
@@ -176,6 +180,29 @@ def get_json(url: str, headers: dict | None = None):
         return json.loads(r.read().decode("utf-8"))
 
 
+def pixabay_get(path: str, params: dict) -> dict:
+    """Pixabay API call with the 24-hour result cache its terms require. The key never reaches the cache key."""
+    key = os.environ.get("PIXABAY_API_KEY")
+    if not key:
+        raise Fail("set PIXABAY_API_KEY: free key at https://pixabay.com/api/docs/ → /plugin → Tempovision → configure "
+                   "→ Pixabay API key, then start a new session")
+    query = urllib.parse.urlencode(sorted(params.items()))
+    cache = plugin_data_dir() / "cache" / "pixabay" / (hashlib.sha256(f"{path}?{query}".encode()).hexdigest()[:32] + ".json")
+    if cache.is_file() and time.time() - cache.stat().st_mtime < 24 * 3600:
+        return json.loads(cache.read_text(encoding="utf-8"))
+    try:
+        d = get_json(f"https://pixabay.com/api/{path}?key={urllib.parse.quote(key)}&{query}")
+    except urllib.error.HTTPError as e:
+        if e.code == 400:
+            raise Fail("Pixabay rejected the request (invalid API key, or a bad parameter); check the key in /plugin")
+        if e.code == 429:
+            raise Fail(f"Pixabay rate limit reached (100 requests a minute); retry in {e.headers.get('X-RateLimit-Reset', '60')} s")
+        raise
+    cache.parent.mkdir(parents=True, exist_ok=True)
+    cache.write_text(json.dumps(d), encoding="utf-8")
+    return d
+
+
 def search(source: str, q: str, kind: str, n: int) -> list[dict]:
     qq = urllib.parse.quote(q)
     out = []
@@ -204,6 +231,26 @@ def search(source: str, q: str, kind: str, n: int) -> list[dict]:
                 out.append({"title": ph.get("alt"), "url": (ph.get("src") or {}).get("original"), "page": ph.get("url"),
                             "author": ph.get("photographer"), "license": "Pexels License",
                             "license_url": "https://www.pexels.com/license/", "size": f"{ph.get('width')}x{ph.get('height')}"})
+    elif source == "pixabay":
+        if kind == "audio":
+            raise Fail("the Pixabay API has no audio search; use --type image or video")
+        params = {"q": q[:100], "per_page": max(3, min(200, n)), "safesearch": "true"}
+        lic = {"license": "Pixabay Content License", "license_url": "https://pixabay.com/service/license-summary/"}
+        if kind == "video":
+            d = pixabay_get("videos/", params)
+            for v in d.get("hits", [])[:n]:
+                # large (4K) is empty on many clips; medium, small and tiny always exist
+                rend = [r for r in (v.get("videos") or {}).values() if r.get("url") and r.get("size")]
+                best = max(rend, key=lambda r: r.get("width") or 0, default={})
+                out.append({"title": v.get("tags"), "url": best.get("url"), "page": v.get("pageURL"), "author": v.get("user"),
+                            **lic, "size": f"{best.get('width')}x{best.get('height')} · {v.get('duration')} s"})
+        else:
+            d = pixabay_get("", params)
+            for ph in d.get("hits", [])[:n]:
+                # largeImageURL is capped at 1280 px; the original needs Pixabay's full API access
+                out.append({"title": ph.get("tags"), "url": ph.get("imageURL") or ph.get("largeImageURL"), "page": ph.get("pageURL"),
+                            "author": ph.get("user"), **lic,
+                            "size": f"{ph.get('imageWidth')}x{ph.get('imageHeight')}" + ("" if ph.get("imageURL") else " (url ≤1280 px)")})
     elif source == "nasa":
         mt = "video" if kind == "video" else "image"
         d = get_json(f"https://images-api.nasa.gov/search?q={qq}&media_type={mt}")
@@ -261,6 +308,8 @@ def cmd_search(a):
     rows = [[i + 1, (r["title"] or "")[:50], r["license"], {True: "yes", False: "NO", None: "?"}[r["commercial_ok"]],
              r.get("size", ""), r.get("page")] for i, r in enumerate(res)]
     print(table(rows, ["#", "Title", "Licence", "Commercial", "Size", "Page"]))
+    if a.source == "pixabay":
+        print("\nImages and videos from Pixabay (https://pixabay.com)")
     print("\nDownload one with: tempovision assets fetch <url> --license \"<licence>\" --source "
           f"\"{a.source}\" --page <page> --author \"<author>\"")
 
@@ -373,7 +422,7 @@ def main(argv=None):
     x.set_defaults(fn=cmd_fetch)
     x = sub.add_parser("search")
     x.add_argument("query")
-    x.add_argument("--source", default="openverse", choices=["openverse", "pexels", "nasa", "met", "aic", "commons"])
+    x.add_argument("--source", default="openverse", choices=["openverse", "pexels", "pixabay", "nasa", "met", "aic", "commons"])
     x.add_argument("--type", default="image", choices=["image", "video", "audio"])
     x.add_argument("-n", type=int, default=10)
     x.add_argument("--json", action="store_true")

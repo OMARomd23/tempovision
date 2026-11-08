@@ -32,7 +32,7 @@ budget.
 | `align` | lyrics on screen | WhisperX + alignment model for the language (downloads on first run) | stable-ts; then person-tapped timing; then heuristic |
 | `gpu` | long songs, generation locally | NVIDIA GPU with CUDA | CPU: stems ~1–3× song length, alignment ~1× |
 | `fonts` | always | font files in `assets/fonts/` with licences recorded | engine's bundled fonts |
-| `stock` | real footage or photos | Pexels key (free) for the Pexels MCP; Openverse needs no key | `tempovision assets search` against Openverse and the archives in `data/sources.json` |
+| `stock` | real footage or photos | a free Pixabay key or Pexels key (either is enough; Pexels serves its MCP too); Openverse needs no key | `tempovision assets search` against Openverse and the archives in `data/sources.json` |
 | `genai` | generated images or clips | fal key with credit, fal MCP connected; a budget in the brief | draw it in code; real material |
 | `upscale` | generated or archival footage below delivery size | fal (upscaler models) | deliver at the source's resolution |
 | `autonomy` | `full` autonomy | Claude Code auto mode (`claude --enable-auto-mode`, then Shift+Tab), run in a dedicated folder | the person approves prompts |
@@ -63,9 +63,13 @@ Keys are entered in the plugin's settings, which feed the bundled MCP servers:
 
 - fal: https://fal.ai/dashboard/keys → create key → `/plugin` → Tempovision → configure → *fal API key*.
   Check pricing before generating: the fal MCP has a pricing tool; quote the per-run cost to the person.
-- Pexels: https://www.pexels.com/api/ → request key (free, instant) → same place, *Pexels API key*.
+- Pexels: https://www.pexels.com/api/ → request key (free) → same place, *Pexels API key*. If Pexels is not
+  issuing keys, use Pixabay.
+- Pixabay: https://pixabay.com/api/docs/ → log in or sign up (free); the key is shown on that page → same place,
+  *Pixabay API key*.
 
-After keys change, the MCP servers reconnect on the next session start (`/mcp` shows their state).
+After keys change, start a new session: the MCP servers reconnect, and the session-start hook passes the Pexels
+and Pixabay keys to `tempovision` commands (`/mcp` shows the servers' state, `tempovision doctor` the keys).
 
 ## Writing SETUP.md
 

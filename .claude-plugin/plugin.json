@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "tempovision",
   "displayName": "Tempovision — music video studio",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Directs and produces lyric music videos from your song: interviews you, sets up tools, maps the song, writes the treatment, sources assets, builds, self-reviews and delivers.",
   "author": {
     "name": "Tempovision contributors"
@@ -30,6 +30,12 @@
       "type": "string",
       "title": "Pexels API key (optional)",
       "description": "Free key for searching stock footage and photos through the Pexels MCP server. Get one at https://www.pexels.com/api/",
+      "sensitive": true
+    },
+    "pixabay_api_key": {
+      "type": "string",
+      "title": "Pixabay API key (optional)",
+      "description": "Free key for searching Pixabay stock footage and photos (an alternative to Pexels). Log in at https://pixabay.com/api/docs/ and copy the key shown there. Takes effect in the next session.",
       "sensitive": true
     },
     "projects_root": {

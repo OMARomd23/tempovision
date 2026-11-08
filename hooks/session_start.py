@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
-"""SessionStart: when the session opens inside a Tempovision project, put its state in context so work resumes."""
+"""SessionStart: pass the stock-search keys from the plugin settings to Bash, and when the session opens inside a
+Tempovision project, put its state in context so work resumes."""
 from __future__ import annotations
 
 import json
+import os
+import re
+import shlex
 import sys
 from pathlib import Path
 
@@ -11,9 +15,33 @@ from _state import find_project, load_state, read_hook_input  # noqa: E402
 
 PHASES = ["open", "interview", "setup", "songmap", "treatment", "assets", "build", "review", "deliver", "done"]
 
+# plugin settings pexels_api_key / pixabay_api_key reach hooks as CLAUDE_PLUGIN_OPTION_<KEY>; `tempovision assets
+# search` reads them under the same name without the prefix
+KEYS = ("PEXELS_API_KEY", "PIXABAY_API_KEY")
+
+
+def export_keys() -> None:
+    """Hooks receive plugin settings, Bash commands do not; CLAUDE_ENV_FILE carries them into every Bash command."""
+    env_file = os.environ.get("CLAUDE_ENV_FILE")
+    if not env_file:
+        return
+    lines = []
+    for var in KEYS:
+        value = os.environ.get(f"CLAUDE_PLUGIN_OPTION_{var}", "").strip()
+        if value:
+            # plain assignments only, so PowerShell commands receive them too
+            lines.append(f"export {var}={value if re.fullmatch(r'[A-Za-z0-9_.-]+', value) else shlex.quote(value)}\n")
+    if lines:
+        with open(env_file, "a", encoding="utf-8") as f:
+            f.writelines(lines)
+
 
 def main() -> int:
     data = read_hook_input()
+    try:
+        export_keys()
+    except OSError:
+        pass  # never block the session over a key
     project = find_project(data.get("cwd"))
     if not project:
         return 0
