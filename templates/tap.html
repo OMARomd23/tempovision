@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tempovision · tap the lyrics</title>
+<style>
+  :root { --ink: #F2EDE4; --dim: #8A857C; --accent: #FFD23F; --ground: #151413; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; background: var(--ground); color: var(--ink);
+         font: 16px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; display: grid; place-items: center; }
+  main { width: min(860px, 92vw); padding: 40px 0; }
+  h1 { font-size: 15px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); font-weight: 600; margin: 0 0 24px; }
+  ol { font-size: 15px; color: var(--dim); padding-left: 20px; margin: 0 0 28px; }
+  .stage { border-top: 1px solid #2A2826; padding-top: 28px; }
+  .prev { color: var(--dim); min-height: 1.5em; }
+  .now { font-size: clamp(28px, 5vw, 52px); line-height: 1.15; font-weight: 700; margin: 10px 0; min-height: 2.4em; }
+  .next { color: var(--dim); font-size: 20px; min-height: 1.5em; }
+  .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 28px; }
+  button, label.file { background: transparent; color: var(--ink); border: 1px solid #3A3835; border-radius: 6px; padding: 10px 16px;
+           font: inherit; cursor: pointer; }
+  button.primary { background: var(--accent); color: #111; border-color: var(--accent); font-weight: 700; }
+  button:disabled { opacity: .4; cursor: default; }
+  .meta { color: var(--dim); font-variant-numeric: tabular-nums; margin-left: auto; }
+  input[type=file] { display: none; }
+  .bar { height: 4px; background: #2A2826; margin-top: 20px; }
+  .bar > i { display: block; height: 100%; width: 0; background: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Tap the lyrics</h1>
+  <ol>
+    <li>Choose the song file.</li>
+    <li>Press <b>Start</b>, then press <b>Space</b> (or tap the big line) exactly when each line <em>starts</em> being sung.</li>
+    <li>Made a mistake? <b>Backspace</b> undoes the last tap and rewinds 3 seconds.</li>
+    <li>At the end, <b>Download</b> saves <code>taps.txt</code>. Send it back.</li>
+  </ol>
+  <div class="row">
+    <label class="file">Choose song…<input id="file" type="file" accept="audio/*,video/*"></label>
+    <button id="start" class="primary" disabled>Start</button>
+    <button id="download" disabled>Download taps.txt</button>
+    <span class="meta" id="meta">0 / 0</span>
+  </div>
+  <div class="stage">
+    <div class="prev" id="prev"></div>
+    <div class="now" id="now">Choose the song to begin.</div>
+    <div class="next" id="next"></div>
+    <div class="bar"><i id="bar"></i></div>
+  </div>
+  <audio id="audio"></audio>
+</main>
+<script>
+  const LINES = __LINES__;
+  const audio = document.getElementById("audio");
+  const els = ["prev", "now", "next", "meta", "bar"].reduce((o, id) => (o[id] = document.getElementById(id), o), {});
+  const startBtn = document.getElementById("start"), dlBtn = document.getElementById("download");
+  let taps = [], running = false;
+
+  function render() {
+    const i = taps.length;
+    els.prev.textContent = i > 0 ? LINES[i - 1] : "";
+    els.now.textContent = i < LINES.length ? LINES[i] : "Done. Download taps.txt.";
+    els.next.textContent = i + 1 < LINES.length ? LINES[i + 1] : "";
+    els.meta.textContent = `${i} / ${LINES.length} · ${audio.currentTime.toFixed(2)} s`;
+    dlBtn.disabled = i === 0;
+  }
+  function tap() {
+    if (!running || taps.length >= LINES.length) return;
+    taps.push(audio.currentTime);
+    render();
+  }
+  function undo() {
+    if (!taps.length) return;
+    taps.pop();
+    audio.currentTime = Math.max(0, audio.currentTime - 3);
+    render();
+  }
+  document.getElementById("file").addEventListener("change", e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    audio.src = URL.createObjectURL(f);
+    startBtn.disabled = false;
+    els.now.textContent = "Ready. Press Start.";
+  });
+  startBtn.addEventListener("click", () => {
+    taps = []; running = true; audio.currentTime = 0; audio.play(); render(); startBtn.blur();
+  });
+  els.now.addEventListener("pointerdown", tap);
+  document.addEventListener("keydown", e => {
+    if (e.code === "Space") { e.preventDefault(); tap(); }
+    if (e.code === "Backspace") { e.preventDefault(); undo(); }
+  });
+  audio.addEventListener("timeupdate", () => {
+    els.bar.style.width = (100 * audio.currentTime / (audio.duration || 1)) + "%";
+    els.meta.textContent = `${taps.length} / ${LINES.length} · ${audio.currentTime.toFixed(2)} s`;
+  });
+  dlBtn.addEventListener("click", () => {
+    const body = taps.map((t, i) => `${t.toFixed(3)}  # ${LINES[i]}`).join("\n") + "\n";
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([body], { type: "text/plain" }));
+    a.download = "taps.txt";
+    a.click();
+  });
+  render();
+</script>
+</body>
+</html>

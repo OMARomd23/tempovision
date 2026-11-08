@@ -1,0 +1,16 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "tempovision",
+  "description": "Tempovision: a music video studio plugin for Claude Code.",
+  "owner": {
+    "name": "Tempovision contributors"
+  },
+  "plugins": [
+    {
+      "name": "tempovision",
+      "description": "Directs and produces lyric music videos from your song: interview, setup, song map, treatment, assets, build, self-review, delivery.",
+      "source": "./",
+      "category": "productivity"
+    }
+  ]
+}

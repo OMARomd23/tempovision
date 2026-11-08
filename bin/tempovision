@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# Tempovision command line: one entry point for every tool. Each tool runs with `uv run --script`, which installs
+# its own dependencies into a cached environment on first use.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPTS="$ROOT/scripts"
+
+usage() {
+  cat <<'EOF'
+tempovision <command> [options]        (tempovision <command> --help for details)
+
+  project   init, status, phases, gates, decisions, budget, sections, autopilot
+  doctor    check the machine; turn BRIEF.md into a setup checklist (SETUP.md)
+  analyze   tempo, beats, bars, sections, energy, onsets per stem, key, loudness (--quick for the interview)
+  stems     separate vocals / drums / bass / other with Demucs
+  align     word-level lyric timing from the artist's lyrics; preview, inspect, nudge, import, taps
+  songmap   SONGMAP.md: sections x lyrics x energy x hooks x hits
+  timing    export lyrics, beats, sections and hits into HyperFrames or Remotion (+ cue manifest)
+  palette   colours and contrast pairs from cover art; --check two colours
+  sheet     contact sheets from a render (grid, range, section, review)
+  qa        measured QA on a render (format, sync, loudness, black/freeze, cuts, lyric cues)
+  assets    the licence ledger: add, fetch, search, check, credits
+  deliver   masters and platform files from the final render + the untouched master audio
+  version   print the plugin version
+EOF
+}
+
+if ! command -v uv >/dev/null 2>&1; then
+  echo "tempovision: uv is required (https://docs.astral.sh/uv/): curl -LsSf https://astral.sh/uv/install.sh | sh" >&2
+  exit 127
+fi
+
+cmd="${1:-help}"
+shift || true
+case "$cmd" in
+  project|doctor|analyze|stems|align|songmap|timing|palette|sheet|qa|assets|deliver)
+    exec uv run --quiet --script "$SCRIPTS/$cmd.py" "$@"
+    ;;
+  version|--version|-v)
+    python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['version'])" "$ROOT/.claude-plugin/plugin.json"
+    ;;
+  help|-h|--help)
+    usage
+    ;;
+  *)
+    echo "tempovision: unknown command '$cmd'" >&2
+    usage >&2
+    exit 2
+    ;;
+esac

@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "fal": {
+      "type": "http",
+      "url": "https://mcp.fal.ai/mcp",
+      "headers": {
+        "Authorization": "Bearer ${user_config.fal_key}"
+      }
+    },
+    "pexels": {
+      "command": "npx",
+      "args": ["-y", "mcp-pexels@1"],
+      "env": {
+        "PEXELS_API_KEY": "${user_config.pexels_api_key}"
+      }
+    }
+  }
+}

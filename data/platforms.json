@@ -1,0 +1,66 @@
+{
+  "_note": "Delivery presets for `tempovision deliver`. Platform upload specs change: when the artist names a platform, check its current help page and update this file. Last reviewed 2026-11.",
+  "targets": {
+    "master": {
+      "label": "Archive master",
+      "container": "mov",
+      "video": {"codec": "prores_ks", "profile": 3, "pix_fmt": "yuv422p10le"},
+      "audio": {"codec": "pcm_s24le", "sample_rate": 48000},
+      "source": "main",
+      "notes": "ProRes 422 HQ, full resolution, 24-bit PCM. The source for any future platform file."
+    },
+    "youtube": {
+      "label": "YouTube (16:9)",
+      "container": "mp4",
+      "video": {"codec": "libx264", "profile": "high", "crf": 16, "preset": "slow", "pix_fmt": "yuv420p"},
+      "audio": {"codec": "aac", "bitrate": "320k", "sample_rate": 48000},
+      "faststart": true,
+      "source": "main",
+      "help": "https://support.google.com/youtube/answer/1722171",
+      "notes": "YouTube recommends H.264 High profile, progressive, yuv420p, AAC-LC; it re-encodes everything, so upload the highest quality you can."
+    },
+    "vertical": {
+      "label": "Reels / TikTok / Shorts (9:16)",
+      "container": "mp4",
+      "size": [1080, 1920],
+      "video": {"codec": "libx264", "profile": "high", "crf": 17, "preset": "slow", "pix_fmt": "yuv420p"},
+      "audio": {"codec": "aac", "bitrate": "256k", "sample_rate": 48000},
+      "faststart": true,
+      "source": "vertical",
+      "notes": "From the 9:16 composition. Keep text out of the top 12% and bottom 20% (platform UI)."
+    },
+    "square": {
+      "label": "Square feed (1:1)",
+      "container": "mp4",
+      "size": [1080, 1080],
+      "video": {"codec": "libx264", "profile": "high", "crf": 17, "preset": "slow", "pix_fmt": "yuv420p"},
+      "audio": {"codec": "aac", "bitrate": "256k", "sample_rate": 48000},
+      "faststart": true,
+      "source": "square"
+    },
+    "canvas": {
+      "label": "Spotify Canvas",
+      "container": "mp4",
+      "size": [720, 1280],
+      "min_seconds": 3,
+      "max_seconds": 8,
+      "video": {"codec": "libx264", "profile": "high", "crf": 18, "preset": "slow", "pix_fmt": "yuv420p"},
+      "audio": null,
+      "source": "vertical",
+      "help": "https://support.spotify.com/artists/article/canvas-guidelines/",
+      "notes": "9:16, 3-8 s, no audio, loops. Avoid text-heavy frames and fast flashing."
+    },
+    "thumbnail": {
+      "label": "Thumbnail (16:9)",
+      "size": [1280, 720],
+      "format": "jpg",
+      "max_bytes": 2000000,
+      "source": "main"
+    },
+    "poster": {
+      "label": "Poster frame (first frame)",
+      "format": "png",
+      "source": "main"
+    }
+  }
+}

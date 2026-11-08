@@ -1,0 +1,58 @@
+{
+  "_note": "Where Tempovision looks for assets. Licences are summaries to route the search, not legal advice: open each item's page, read its licence, and record it with `tempovision assets add/fetch`. Reviewed 2026-11. Add sources the artist trusts.",
+  "fonts": [
+    {"name": "Google Fonts", "url": "https://fonts.google.com", "api": "https://github.com/google/fonts (files)", "license": "mostly SIL OFL 1.1, some Apache 2.0", "commercial_ok": true, "attribution": false, "notes": "Broad and reliable; check the family's licence file. Variable fonts available for many families."},
+    {"name": "Fontshare (Indian Type Foundry)", "url": "https://www.fontshare.com", "license": "ITF Free Font License", "commercial_ok": true, "attribution": false, "notes": "High-quality grotesks and display faces (e.g. Satoshi, Clash, General Sans). Read the ITF FFL for redistribution limits: embed in renders, do not redistribute files."},
+    {"name": "Velvetyne", "url": "https://velvetyne.fr", "license": "SIL OFL 1.1", "commercial_ok": true, "attribution": false, "notes": "Experimental, expressive libre display type."},
+    {"name": "Collletttivo", "url": "https://www.collletttivo.it", "license": "SIL OFL 1.1", "commercial_ok": true, "attribution": false, "notes": "Libre display typefaces with strong character."},
+    {"name": "The League of Moveable Type", "url": "https://www.theleagueofmoveabletype.com", "license": "SIL OFL 1.1", "commercial_ok": true, "attribution": false},
+    {"name": "Uncut.wtf", "url": "https://uncut.wtf", "license": "varies per font (many OFL)", "commercial_ok": null, "attribution": false, "notes": "A catalogue of free contemporary typefaces; check each font's licence."},
+    {"name": "Fontsource", "url": "https://fontsource.org", "api": "https://api.fontsource.org/v1/fonts", "license": "as the source font", "commercial_ok": true, "attribution": false, "notes": "Self-hostable packages of open fonts (npm @fontsource/*), handy for Remotion."}
+  ],
+  "footage": [
+    {"name": "Pexels Videos", "url": "https://www.pexels.com/videos/", "api": "https://api.pexels.com/videos/search (key)", "mcp": "pexels", "license": "Pexels License", "commercial_ok": true, "attribution": false, "notes": "Good 4K stock; avoid identifiable people/brands for commercial work unless released."},
+    {"name": "Pixabay Videos", "url": "https://pixabay.com/videos/", "api": "https://pixabay.com/api/videos/ (key)", "license": "Pixabay Content License", "commercial_ok": true, "attribution": false},
+    {"name": "Mixkit", "url": "https://mixkit.co/free-stock-video/", "license": "Mixkit Stock Video Free License", "commercial_ok": true, "attribution": false, "notes": "Read the per-category licence (music video use is generally covered; not for redistribution as stock)."},
+    {"name": "Internet Archive: Prelinger Archives", "url": "https://archive.org/details/prelinger", "api": "https://archive.org/advancedsearch.php", "license": "mostly public domain; some CC; check each item", "commercial_ok": null, "attribution": false, "notes": "Mid-century ephemeral films: the classic film-collage source."},
+    {"name": "NASA Image and Video Library", "url": "https://images.nasa.gov", "api": "https://images-api.nasa.gov/search", "license": "generally not copyrighted (US gov); NASA logos and identifiable astronauts have rules", "commercial_ok": true, "attribution": false, "notes": "Space, Earth, launches; check the item for third-party material."},
+    {"name": "Wikimedia Commons (video)", "url": "https://commons.wikimedia.org/wiki/Category:Videos", "api": "https://commons.wikimedia.org/w/api.php", "license": "per file (CC0, CC BY, CC BY-SA, PD)", "commercial_ok": null, "attribution": true},
+    {"name": "Artist's own footage", "url": "", "license": "own", "commercial_ok": true, "attribution": false, "notes": "Always ask in the interview: phone clips, rehearsals, places from the song."}
+  ],
+  "images": [
+    {"name": "Openverse", "url": "https://openverse.org", "api": "https://api.openverse.org/v1/images/ (no key, rate-limited)", "license": "CC and public domain, per item", "commercial_ok": null, "attribution": true, "notes": "Search across Flickr, Wikimedia, museums; filter license_type=commercial."},
+    {"name": "Unsplash", "url": "https://unsplash.com", "api": "https://api.unsplash.com (key)", "license": "Unsplash License", "commercial_ok": true, "attribution": false},
+    {"name": "Pexels Photos", "url": "https://www.pexels.com", "api": "https://api.pexels.com/v1/search (key)", "mcp": "pexels", "license": "Pexels License", "commercial_ok": true, "attribution": false},
+    {"name": "The Met Open Access", "url": "https://www.metmuseum.org/art/collection", "api": "https://collectionapi.metmuseum.org/public/collection/v1/", "license": "CC0 for public-domain works (isPublicDomain=true)", "commercial_ok": true, "attribution": false},
+    {"name": "Art Institute of Chicago", "url": "https://www.artic.edu/collection", "api": "https://api.artic.edu/api/v1/artworks/search", "license": "CC0 for public-domain works", "commercial_ok": true, "attribution": false, "notes": "IIIF images up to full resolution."},
+    {"name": "Rijksmuseum", "url": "https://www.rijksmuseum.nl/en/rijksstudio", "license": "public domain (CC0) for most collection images", "commercial_ok": true, "attribution": false},
+    {"name": "Smithsonian Open Access", "url": "https://www.si.edu/openaccess", "api": "https://api.si.edu/openaccess/api/v1.0/search (api.data.gov key)", "license": "CC0 for items marked Open Access", "commercial_ok": true, "attribution": false},
+    {"name": "Library of Congress", "url": "https://www.loc.gov/free-to-use/", "api": "https://www.loc.gov/apis/", "license": "free to use sets; others vary", "commercial_ok": null, "attribution": false},
+    {"name": "NASA images", "url": "https://images.nasa.gov", "api": "https://images-api.nasa.gov/search", "license": "generally not copyrighted", "commercial_ok": true, "attribution": false}
+  ],
+  "textures_3d": [
+    {"name": "Poly Haven", "url": "https://polyhaven.com", "api": "https://api.polyhaven.com", "license": "CC0", "commercial_ok": true, "attribution": false, "notes": "Textures, HDRIs (lighting for 3D), models."},
+    {"name": "ambientCG", "url": "https://ambientcg.com", "api": "https://ambientcg.com/api/v2/full_json", "license": "CC0", "commercial_ok": true, "attribution": false, "notes": "PBR materials: paper, concrete, fabric, metal."},
+    {"name": "Kenney", "url": "https://kenney.nl/assets", "license": "CC0", "commercial_ok": true, "attribution": false, "notes": "Game-style 2D/3D asset packs; useful for stylised worlds."},
+    {"name": "Sketchfab (downloadable, CC)", "url": "https://sketchfab.com/search?features=downloadable&licenses=7c23a1ba438d4306920229c12afcb5f9&type=models", "license": "per model (filter CC0 / CC BY)", "commercial_ok": null, "attribution": true},
+    {"name": "Procedural (in engine)", "url": "", "license": "own", "commercial_ok": true, "attribution": false, "notes": "Paper fibre, grain, halftone, noise fields, gradients: write them as shaders/SVG filters; no licence questions, exactly on spec."}
+  ],
+  "motion": [
+    {"name": "LottieFiles (free animations)", "url": "https://lottiefiles.com/free-animations", "license": "Lottie Simple License (check each)", "commercial_ok": true, "attribution": false, "notes": "Icons and small motion pieces; rarely right as hero material."},
+    {"name": "HyperFrames registry", "url": "https://hyperframes.dev", "license": "per block (see registry)", "commercial_ok": null, "attribution": false, "notes": "`npx hyperframes catalog` / `/hyperframes-registry`: captions, transitions, effects to restyle."},
+    {"name": "Shadertoy", "url": "https://www.shadertoy.com", "license": "default CC BY-NC-SA 3.0 unless the author states otherwise", "commercial_ok": false, "attribution": true, "notes": "Study, do not paste into a commercial release. Write your own shader instead."}
+  ],
+  "sfx": [
+    {"name": "Freesound", "url": "https://freesound.org", "api": "https://freesound.org/apiv2/ (key)", "license": "per sound: CC0, CC BY, CC BY-NC", "commercial_ok": null, "attribution": true, "notes": "Only used when the brief asks for sound design beyond the master."},
+    {"name": "Sonniss GDC bundles", "url": "https://sonniss.com/gameaudiogdc", "license": "royalty-free, commercial use", "commercial_ok": true, "attribution": false}
+  ],
+  "generation": [
+    {"name": "fal (MCP)", "url": "https://fal.ai", "mcp": "fal", "license": "per model's terms (recorded per asset)", "commercial_ok": true, "attribution": false, "notes": "search_models / recommend_model / get_pricing / run_model / submit_job + check_job / upload_file. Images, image-to-video, upscaling, background removal. Quote prices before batches."},
+    {"name": "Local ComfyUI", "url": "https://github.com/comfyanonymous/ComfyUI", "license": "per model", "commercial_ok": null, "attribution": false, "notes": "If the artist already runs it with a GPU; check each model's licence (some are non-commercial)."}
+  ],
+  "references_and_learning": [
+    {"name": "Art of the Title", "url": "https://www.artofthetitle.com", "notes": "Title-sequence craft: how type carries a film."},
+    {"name": "Motionographer", "url": "https://motionographer.com", "notes": "Contemporary motion design."},
+    {"name": "Typewolf", "url": "https://www.typewolf.com", "notes": "Type pairings in use."},
+    {"name": "Fonts In Use", "url": "https://fontsinuse.com", "notes": "Typefaces on records, posters and film."}
+  ]
+}

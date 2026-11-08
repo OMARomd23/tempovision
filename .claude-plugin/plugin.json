@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "tempovision",
+  "displayName": "Tempovision — music video studio",
+  "version": "0.1.0",
+  "description": "Directs and produces lyric music videos from your song: interviews you, sets up tools, maps the song, writes the treatment, sources assets, builds, self-reviews and delivers.",
+  "author": {
+    "name": "Tempovision contributors"
+  },
+  "license": "MIT",
+  "icon": "./assets/icon.png",
+  "keywords": [
+    "music-video",
+    "lyric-video",
+    "motion-design",
+    "kinetic-typography",
+    "remotion",
+    "hyperframes",
+    "whisperx",
+    "video-production"
+  ],
+  "userConfig": {
+    "fal_key": {
+      "type": "string",
+      "title": "fal API key (optional)",
+      "description": "Enables image, video and upscaling models through the fal MCP server. Only needed for generated imagery or footage. Get one at https://fal.ai/dashboard/keys",
+      "sensitive": true
+    },
+    "pexels_api_key": {
+      "type": "string",
+      "title": "Pexels API key (optional)",
+      "description": "Free key for searching stock footage and photos through the Pexels MCP server. Get one at https://www.pexels.com/api/",
+      "sensitive": true
+    },
+    "projects_root": {
+      "type": "directory",
+      "title": "Projects folder",
+      "description": "Where new music video projects are created. Leave empty to create them in the current folder.",
+      "default": ""
+    },
+    "default_engine": {
+      "type": "string",
+      "title": "Default render engine",
+      "description": "HyperFrames (HTML + GSAP) or Remotion (React). The intake interview can still change it per project.",
+      "options": [
+        "hyperframes",
+        "remotion"
+      ],
+      "default": "hyperframes"
+    }
+  }
+}
