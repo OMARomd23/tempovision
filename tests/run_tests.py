@@ -88,6 +88,18 @@ def main():
         assert (proj / "analysis" / "plots" / "overview.png").exists()
     _()
 
+    @test("analyze: the tempo is checked against its relatives; --bpm forces one")
+    def _():
+        a = json.loads((proj / "analysis" / "audio.json").read_text())
+        t = a["tempo"]
+        assert t["candidates"] and t["candidates"][0]["ratio"] == 1.0 and not t["corrected_from"], t["candidates"]
+        p = run([TEMPOVISION, "analyze", "--bpm", "60", "--out", str(proj / "analysis" / "forced.json"), "--no-plot"], cwd=proj)
+        f = json.loads((proj / "analysis" / "forced.json").read_text())["tempo"]
+        assert f["forced"] and abs(f["bpm"] - 60) < 2, f
+        assert "forced" in p.stdout
+        run([TEMPOVISION, "analyze", "--no-plot"], cwd=proj)  # back to the detected grid for the tests below
+    _()
+
     @test("align (heuristic): line starts within 50 ms")
     def _():
         run([TEMPOVISION, "align", "--method", "heuristic"], cwd=proj)
