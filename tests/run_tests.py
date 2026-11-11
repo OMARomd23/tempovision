@@ -222,6 +222,51 @@ def main():
         assert got["master"]["video"]["codec"] == "prores"
     _()
 
+    @test("deliver: an excerpt render gets its own span of the master, never the song's opening")
+    def _():
+        drafts = proj / "renders" / "drafts"
+        vout = proj / "renders" / "vtest"
+        vf = "scale=360:640:force_original_aspect_ratio=increase,crop=360:640"
+        silent, voiced = drafts / "vertical_silent.mp4", drafts / "vertical_voiced.mp4"
+        run(["ffmpeg", "-v", "error", "-y", "-ss", "24", "-t", "12", "-i", str(draft), "-vf", vf, "-an", "-c:v", "libx264",
+             "-preset", "veryfast", "-pix_fmt", "yuv420p", str(silent)])
+        run(["ffmpeg", "-v", "error", "-y", "-ss", "24", "-t", "12", "-i", str(draft), "-vf", vf, "-c:v", "libx264",
+             "-preset", "veryfast", "-pix_fmt", "yuv420p", "-c:a", "aac", str(voiced)])
+        base = [TEMPOVISION, "deliver", str(draft), "--targets", "vertical", "--out", str(vout)]
+        # a silent excerpt without a range: refused (its place in the song can't be measured)
+        p = run(base + ["--vertical", str(silent)], cwd=proj, ok=(1,))
+        assert "--vertical-range" in p.stdout + p.stderr
+        # with the range: that span of the master, flagged as unmeasured rather than "in sync"
+        run(base + ["--vertical", str(silent), "--vertical-range", "24"], cwd=proj)
+        f = json.loads((vout / "DELIVERY.json").read_text())["files"][0]
+        assert f["song_start"] == 24.0 and f["sync_ok"] is None, f
+        loc = json.loads(run([TEMPOVISION, "master", "locate", f["path"]], cwd=proj).stdout)
+        assert loc["match"] and abs(loc["starts_at"] - 24.0) < 0.01, loc
+        # an excerpt with its own audio is placed by matching it, and its sync is measured
+        run(base + ["--vertical", str(voiced)], cwd=proj)
+        f = json.loads((vout / "DELIVERY.json").read_text())["files"][0]
+        assert f["song_start_from"] == "matched" and abs(f["song_start"] - 24.0) < 0.04 and f["sync_ok"] is True, f
+        # a range that contradicts the render's own audio is refused
+        run(base + ["--vertical", str(voiced), "--vertical-range", "0"], cwd=proj, ok=(1,))
+    _()
+
+    @test("master: a new mix 27 ms early is measured, refused by deliver, and aligned back to 0")
+    def _():
+        song = next((proj / "input").glob("song.*"))
+        early = proj / "renders" / "new_mix.wav"
+        run(["ffmpeg", "-v", "error", "-y", "-i", str(song), "-af", "atrim=start=0.027,asetpts=PTS-STARTPTS,volume=0.8",
+             "-c:a", "pcm_s16le", str(early)])
+        r = json.loads(run([TEMPOVISION, "master", "compare", str(early), "--json"], cwd=proj).stdout)
+        assert r["same_song"] and abs(r["offset_ms"] + 27) <= 2, r
+        run([TEMPOVISION, "deliver", str(draft), "--targets", "youtube", "--master", str(early), "--out",
+             str(proj / "renders" / "mtest")], cwd=proj, ok=(1,))
+        aligned = run([TEMPOVISION, "master", "align", str(early)], cwd=proj).stdout.strip().splitlines()[-1]
+        r = json.loads(run([TEMPOVISION, "master", "compare", aligned, "--json"], cwd=proj).stdout)
+        assert abs(r["offset_ms"]) <= 1.0, r
+        run([TEMPOVISION, "deliver", str(draft), "--targets", "youtube", "--master", aligned, "--out",
+             str(proj / "renders" / "mtest")], cwd=proj)
+    _()
+
     @test("doctor turns the brief into grouped requirements")
     def _():
         p = run([TEMPOVISION, "doctor", "--brief", "BRIEF.md", "--write", "SETUP.md", "--no-mcp", "--json"], cwd=proj, ok=(0, 1))
