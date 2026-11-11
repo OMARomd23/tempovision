@@ -27,6 +27,9 @@ PASSED, FAILED = [], []
 
 
 def run(cmd, cwd=None, env=None, ok=(0,)):
+    if os.name == "nt" and cmd and str(cmd[0]) == TEMPOVISION and len(cmd) > 1:
+        # bin/tempovision is a bash script that Windows can't exec (and `bash` may be WSL): dispatch the way it does
+        cmd = ["uv", "run", "--quiet", "--script", str(ROOT / "scripts" / f"{cmd[1]}.py"), *cmd[2:]]
     p = subprocess.run(cmd, cwd=cwd, env={**os.environ, **(env or {})}, capture_output=True, text=True)
     if p.returncode not in ok:
         raise AssertionError(f"{' '.join(map(str, cmd[:4]))} exited {p.returncode}:\n{p.stdout[-1500:]}\n{p.stderr[-1500:]}")
@@ -64,7 +67,8 @@ def main():
     @test("project init creates the tree, read-only originals, git repo")
     def _():
         assert (proj / "tempovision.json").exists() and (proj / "BRIEF.md").exists()
-        assert (proj / "input" / "song.wav").exists() and not os.access(proj / "input" / "song.wav", os.W_OK) or os.geteuid() == 0
+        root = hasattr(os, "geteuid") and os.geteuid() == 0  # root ignores read-only bits; Windows has no geteuid
+        assert (proj / "input" / "song.wav").exists() and not os.access(proj / "input" / "song.wav", os.W_OK) or root
         assert (proj / ".git").exists()
     _()
 
