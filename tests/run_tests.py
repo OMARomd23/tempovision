@@ -124,6 +124,18 @@ def main():
             assert (proj / "lyrics" / f).exists(), f
     _()
 
+    @test("align --method mms (stand-in backend): the multilingual route gives the same word times")
+    def _():
+        env = {"TEMPOVISION_ML_BACKEND": str(ROOT / "tests" / "mock_align_backend.py"), "TEMPOVISION_TRUTH": str(song_dir / "truth.json")}
+        run([TEMPOVISION, "align", "--method", "mms"], cwd=proj, env=env)
+        d = json.loads((proj / "lyrics" / "timing.json").read_text())
+        assert d["method"] == "mms", d["method"]
+        tw = [w for l in truth["lines"] for w in l["words"]]
+        dw = [w for l in d["lines"] for w in l["words"]]
+        assert max(abs(a["start"] - b["start"]) for a, b in zip(tw, dw)) < 0.04
+        run([TEMPOVISION, "align"], cwd=proj, env=env)  # back to the default route for the tests below
+    _()
+
     @test("align --nudge shifts one line; --preview renders the karaoke check")
     def _():
         before = json.loads((proj / "lyrics" / "timing.json").read_text())["lines"][2]["start"]
