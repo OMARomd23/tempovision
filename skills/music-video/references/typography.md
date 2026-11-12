@@ -61,6 +61,33 @@ Mix by section: the contrast between treatments is what makes the chorus feel li
 
 Each needs a reason in the shot list. A move used everywhere becomes a tic; give each one a home section.
 
+## Knock-outs: letters cut out of a band
+
+A knock-out (letters cut out of a band of paint, chalk or colour) is reversed type on a label, and it needs more
+room than the same words set plainly:
+
+- **Band height ≈ 1.7–1.8× the letters' body**: about 0.4 of the body clear above and below. Letters that touch
+  the band's edges read cramped and smaller than they are.
+- **Centre the ink, not the em box.** Display faces sit high or low in their box (Rock Salt's ink runs ~1.1 em
+  above the baseline to ~0.35 below). Measure the ink and centre it in the band.
+- **Run the band a full em past the text** at both ends, plus its own taper.
+- **Open the tracking** by 2–4% and widen word spaces; cut-out letters close up visually.
+- **Separate stacked bands** with a clear gap (≥ 0.3 em) so each line reads as its own stroke, not one slab.
+- Check the knock-outs in the layout pass: they are the widest blocks in the film, and the first to break
+  title-safe when anything grows.
+
+## Edges of the frame
+
+A word that runs out of the frame reads as a mistake unless it is visibly moving out (still in motion, or leaving
+on a cut). A held frame with a clipped word looks clipped, whatever the intention. Keep every word whole inside
+title-safe while it is read; let it leave only as an exit.
+
+## End credits
+
+Ask the person at the interview who to credit (mix and recording, animation and video, director, label) and
+exactly how each name or handle is written. Set them on the last hold, quiet, in the film's own type, inside
+title-safe, after the title has landed; they stay until the end.
+
 ## Legibility over footage or busy backgrounds
 
 Choose by the brightness behind the text: dark ground → light type; mid → add a local scrim (30–40% sized to the

@@ -5,8 +5,10 @@
 # ///
 """Word-level lyric timing: align the artist's own lyric text to the vocal.
 
-  tempovision align                         auto: forced -> anchored -> stable-ts -> heuristic (first that passes QA)
-  tempovision align --method forced|anchored|stable-ts|heuristic
+  tempovision align                         auto: forced -> mms -> anchored -> stable-ts -> heuristic (first that passes QA)
+  tempovision align --method forced|mms|anchored|stable-ts|heuristic
+                                            mms: Meta's multilingual aligner (1,100+ languages, romanised text):
+                                            for languages without a wav2vec2 model, Arabizi, code-switched lyrics
   tempovision align --import FILE           use the artist's timing (.lrc, .srt, or a tap file from lyrics/tap.html)
   tempovision align --taps                  write lyrics/tap.html: the artist taps each line start in a browser
   tempovision align --preview               render lyrics/preview.mp4: karaoke over the song, to check by ear
@@ -152,7 +154,7 @@ def activity(y: np.ndarray, sr: int = SR, rate: int = 100):
 
 
 def uv_run(script: str, *args: str, timeout: float | None = None) -> subprocess.CompletedProcess:
-    override = os.environ.get("TEMPOVISION_ML_BACKEND") if script == "_align_ml.py" else None
+    override = os.environ.get("TEMPOVISION_ML_BACKEND") if script in ("_align_ml.py", "_align_mms.py") else None
     if override:  # tests: a stand-in backend with the same job/result contract
         return subprocess.run([sys.executable, override, *args], capture_output=True, text=True, timeout=timeout)
     uv = shutil.which("uv")
@@ -162,16 +164,20 @@ def uv_run(script: str, *args: str, timeout: float | None = None) -> subprocess.
     return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
 
 
-def ml_job(job: dict) -> dict:
+def ml_job(job: dict, script: str = "_align_ml.py") -> dict:
     with tempfile.TemporaryDirectory() as td:
         jp, op = Path(td) / "job.json", Path(td) / "out.json"
         jp.write_text(json.dumps(job), encoding="utf-8")
-        info(f"model backend: {job['method']} (first run installs PyTorch and downloads the model) …")
-        proc = uv_run("_align_ml.py", str(jp), str(op))
+        name = "mms" if script == "_align_mms.py" else "wav2vec2"
+        info(f"model backend: {name} {job['method']} (first run installs PyTorch and downloads the model) …")
+        proc = uv_run(script, str(jp), str(op))
         if proc.returncode != 0 or not op.exists():
             tail = "\n  ".join((proc.stderr or "").strip().splitlines()[-8:])
             raise RuntimeError(f"alignment backend failed:\n  {tail}")
-        return json.loads(op.read_text(encoding="utf-8"))
+        res = json.loads(op.read_text(encoding="utf-8"))
+        if res.get("device"):
+            info(f"model backend ran on {res['device']}{' (' + res['gpu'] + ')' if res.get('gpu') else ''}")
+        return res
 
 
 def write_16k(src: Path, dest: Path) -> np.ndarray:
@@ -234,6 +240,11 @@ def method_forced(lines, audio16, language, align_model):
     job = {"method": "forced", "audio": str(audio16), "language": language, "align_model": align_model,
            "lines": [{"words": [w["norm"] for w in line["words"]]} for line in lines]}
     return ml_job(job)["lines"]
+
+
+def method_mms(lines, audio16):
+    job = {"method": "forced", "audio": str(audio16), "lines": [{"words": [w["norm"] for w in line["words"]]} for line in lines]}
+    return ml_job(job, "_align_mms.py")["lines"]
 
 
 def method_anchored(lines, audio16, language, align_model, whisper, duration):
@@ -653,7 +664,7 @@ def finish(project, state, lines, act_on, rate, duration, method, language, offs
 
 def main(argv=None):
     p = argparse.ArgumentParser(prog="tempovision align", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--method", default="auto", choices=["auto", "forced", "anchored", "stable-ts", "heuristic"])
+    p.add_argument("--method", default="auto", choices=["auto", "forced", "mms", "anchored", "stable-ts", "heuristic"])
     p.add_argument("--import", dest="import_file")
     p.add_argument("--taps", action="store_true")
     p.add_argument("--preview", action="store_true")
@@ -679,10 +690,13 @@ def main(argv=None):
     if a.install:
         with tempfile.TemporaryDirectory():
             try:
-                res = ml_job({"method": "check", "language": language, "align_model": a.align_model})
+                if a.method == "mms":
+                    res = ml_job({"method": "check"}, "_align_mms.py")
+                else:
+                    res = ml_job({"method": "check", "language": language, "align_model": a.align_model})
             except RuntimeError as e:
                 raise Fail(str(e))
-        set_marker(f"align-{language}")
+        set_marker("align-mms" if a.method == "mms" else f"align-{language}")
         print(f"alignment backend ready: {res}")
         return
 
@@ -752,11 +766,15 @@ def main(argv=None):
                               "window": [max(0.0, (old[i - 1]["end"] if i > 0 else 0.0) - 0.3),
                                          min(duration, (old[i + 1]["start"] if i + 1 < len(old) else duration) + 0.3)]}
                              for i, l in zip(idx, subset)]}
+            mms = str(data.get("method", "")).startswith("mms")
+            if mms:
+                for ln in job["lines"]:
+                    ln.pop("language", None)
             try:
-                res = ml_job(job)["lines"]
+                res = ml_job(job, "_align_mms.py" if mms else "_align_ml.py")["lines"]
             except RuntimeError as e:
                 raise Fail(str(e))
-            apply_word_times(subset, res, act_e, act_on, rate, "forced-range")
+            apply_word_times(subset, res, act_e, act_on, rate, "mms-range" if mms else "forced-range")
             data = finish(project, state, old, act_on, rate, duration, data["method"], language)
             print(f"re-aligned {len(idx)} lines; {data['qa']['flagged']} flagged")
             export_all(project, data, set(x.strip() for x in a.export.split(",") if x.strip()))
@@ -766,12 +784,14 @@ def main(argv=None):
             import_timing(lines, Path(a.import_file))
             method = lines[0].get("method", "imported")
         else:
-            order = ["forced", "anchored", "stable-ts", "heuristic"] if a.method == "auto" else [a.method]
+            order = ["forced", "mms", "anchored", "stable-ts", "heuristic"] if a.method == "auto" else [a.method]
             method, errors = None, []
             for m in order:
                 try:
                     if m == "forced":
                         apply_word_times(lines, method_forced(lines, audio16, language, a.align_model), act_e, act_on, rate, m)
+                    elif m == "mms":
+                        apply_word_times(lines, method_mms(lines, audio16), act_e, act_on, rate, m)
                     elif m == "anchored":
                         res, coverage = method_anchored(lines, audio16, language, a.align_model, a.whisper, duration)
                         if coverage < 0.5:
@@ -789,6 +809,8 @@ def main(argv=None):
                     method = m
                     if m in ("forced", "anchored"):
                         set_marker(f"align-{language}")
+                    elif m == "mms":
+                        set_marker("align-mms")
                     break
                 except (RuntimeError, ValueError) as e:
                     errors.append(f"{m}: {e}")

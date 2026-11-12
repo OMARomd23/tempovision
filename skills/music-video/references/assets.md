@@ -31,7 +31,9 @@
 ## Generating
 
 Through the fal MCP: `search_models` / `recommend_model` to find a model, `get_pricing` to quote the cost,
-`run_model` (images) or `submit_job` + `check_job` (video), `upload_file` for references.
+`run_model` (images) or `submit_job` + `check_job` (video), `upload_file` for references. Another generation
+service the person has (Higgsfield, for example) works the same way: quote, ledger every job, stay inside its
+credits. Trial accounts may only work through one route (Higgsfield's trial: the MCP, not the CLI).
 
 - **Quote first.** Before any batch, tell the person the per-item price and the total, unless the brief's budget
   covers it; log each spend: `tempovision project spend 0.40 "6 chorus stills, model X"`. Stop at the cap.
@@ -43,11 +45,25 @@ Through the fal MCP: `search_models` / `recommend_model` to find a model, `get_p
   text-to-video for recurring characters.
 - **Generate stills, then motion.** Approve a still before paying for its motion. Animate only shots that need
   motion the engine cannot add (camera moves and parallax on a still are usually better done in the engine).
+- **The person's characters are theirs.** Figures from their cover or artwork are never regenerated, even
+  "in the same style": a model redraws faces, eyes and hands its own way, and the person sees it at once. Clean
+  the original (remove the title and logo), upscale it for close-ups, and animate it (image-to-video from that
+  file, or its layers moved in the engine). Read every clip frame by frame: a clip that grows ears, irises, a
+  torso or skin texture on their figure is rejected, however good it looks. Generate new scenes only where a
+  figure is small, seen from behind, or partial (a hand, a silhouette at a distance).
+- **Hold the style at both ends.** Image-to-video drifts toward photographic: a painted hand becomes a real hand
+  by the second second, and the morph target (a sword, a wave) arrives rendered. Generate the first AND the last
+  frame as stills in the film's medium, approve both, then use a first-and-last-frame video model; every frame
+  in between stays painted. Name what must stay naive in the prompt ("crude, flat, no knuckles, no skin
+  texture"), not only what it is.
+- **Resolution for the delivery, not more.** For a 1080p film, generate at 1080p (FHD); 2K and 4K cost more and
+  add nothing, unless a shot crops deep into the image (then upscale that one still).
 - **Reject fast.** Hands, text in images, faces drifting off-model, physics that melt: reject and change the
   approach after two failures (crop, reframe, draw it instead).
 - **Upscale and match** before compositing: same resolution, same frame rate (convert with `ffmpeg -r` only
   with frame blending off), graded to the film's look in finishing.
-- Record model, prompt, seed, reference images and cost in the ledger for every generated file.
+- Record model, prompt, seed, reference images and cost in the ledger for every generated file, rejected
+  ones included (with why). Paid generations are never "regenerable": no cleanup deletes them.
 
 ## Fonts
 

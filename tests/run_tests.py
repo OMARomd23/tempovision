@@ -27,6 +27,9 @@ PASSED, FAILED = [], []
 
 
 def run(cmd, cwd=None, env=None, ok=(0,)):
+    if os.name == "nt" and cmd and str(cmd[0]) == TEMPOVISION and len(cmd) > 1:
+        # bin/tempovision is a bash script that Windows can't exec (and `bash` may be WSL): dispatch the way it does
+        cmd = ["uv", "run", "--quiet", "--script", str(ROOT / "scripts" / f"{cmd[1]}.py"), *cmd[2:]]
     p = subprocess.run(cmd, cwd=cwd, env={**os.environ, **(env or {})}, capture_output=True, text=True)
     if p.returncode not in ok:
         raise AssertionError(f"{' '.join(map(str, cmd[:4]))} exited {p.returncode}:\n{p.stdout[-1500:]}\n{p.stderr[-1500:]}")
@@ -64,7 +67,8 @@ def main():
     @test("project init creates the tree, read-only originals, git repo")
     def _():
         assert (proj / "tempovision.json").exists() and (proj / "BRIEF.md").exists()
-        assert (proj / "input" / "song.wav").exists() and not os.access(proj / "input" / "song.wav", os.W_OK) or os.geteuid() == 0
+        root = hasattr(os, "geteuid") and os.geteuid() == 0  # root ignores read-only bits; Windows has no geteuid
+        assert (proj / "input" / "song.wav").exists() and not os.access(proj / "input" / "song.wav", os.W_OK) or root
         assert (proj / ".git").exists()
     _()
 
@@ -82,6 +86,18 @@ def main():
         for s, t in zip(a["sections"], truth["sections"]):
             assert abs(s["start"] - t["start"]) < 0.1, (s["start"], t["start"])
         assert (proj / "analysis" / "plots" / "overview.png").exists()
+    _()
+
+    @test("analyze: the tempo is checked against its relatives; --bpm forces one")
+    def _():
+        a = json.loads((proj / "analysis" / "audio.json").read_text())
+        t = a["tempo"]
+        assert t["candidates"] and t["candidates"][0]["ratio"] == 1.0 and not t["corrected_from"], t["candidates"]
+        p = run([TEMPOVISION, "analyze", "--bpm", "60", "--out", str(proj / "analysis" / "forced.json"), "--no-plot"], cwd=proj)
+        f = json.loads((proj / "analysis" / "forced.json").read_text())["tempo"]
+        assert f["forced"] and abs(f["bpm"] - 60) < 2, f
+        assert "forced" in p.stdout
+        run([TEMPOVISION, "analyze", "--no-plot"], cwd=proj)  # back to the detected grid for the tests below
     _()
 
     @test("align (heuristic): line starts within 50 ms")
@@ -106,6 +122,18 @@ def main():
         assert max(abs(a["end"] - b["end"]) for a, b in zip(tw, dw)) < 0.04
         for f in ("words.hyperframes.json", "captions.remotion.json", "lyrics.srt", "lyrics.lrc", "lyrics.ass"):
             assert (proj / "lyrics" / f).exists(), f
+    _()
+
+    @test("align --method mms (stand-in backend): the multilingual route gives the same word times")
+    def _():
+        env = {"TEMPOVISION_ML_BACKEND": str(ROOT / "tests" / "mock_align_backend.py"), "TEMPOVISION_TRUTH": str(song_dir / "truth.json")}
+        run([TEMPOVISION, "align", "--method", "mms"], cwd=proj, env=env)
+        d = json.loads((proj / "lyrics" / "timing.json").read_text())
+        assert d["method"] == "mms", d["method"]
+        tw = [w for l in truth["lines"] for w in l["words"]]
+        dw = [w for l in d["lines"] for w in l["words"]]
+        assert max(abs(a["start"] - b["start"]) for a, b in zip(tw, dw)) < 0.04
+        run([TEMPOVISION, "align"], cwd=proj, env=env)  # back to the default route for the tests below
     _()
 
     @test("align --nudge shifts one line; --preview renders the karaoke check")
@@ -216,6 +244,51 @@ def main():
         assert set(got) == {"master", "youtube", "thumbnail", "poster"}, got.keys()
         assert got["master"]["sync_ok"] and got["youtube"]["sync_ok"]
         assert got["master"]["video"]["codec"] == "prores"
+    _()
+
+    @test("deliver: an excerpt render gets its own span of the master, never the song's opening")
+    def _():
+        drafts = proj / "renders" / "drafts"
+        vout = proj / "renders" / "vtest"
+        vf = "scale=360:640:force_original_aspect_ratio=increase,crop=360:640"
+        silent, voiced = drafts / "vertical_silent.mp4", drafts / "vertical_voiced.mp4"
+        run(["ffmpeg", "-v", "error", "-y", "-ss", "24", "-t", "12", "-i", str(draft), "-vf", vf, "-an", "-c:v", "libx264",
+             "-preset", "veryfast", "-pix_fmt", "yuv420p", str(silent)])
+        run(["ffmpeg", "-v", "error", "-y", "-ss", "24", "-t", "12", "-i", str(draft), "-vf", vf, "-c:v", "libx264",
+             "-preset", "veryfast", "-pix_fmt", "yuv420p", "-c:a", "aac", str(voiced)])
+        base = [TEMPOVISION, "deliver", str(draft), "--targets", "vertical", "--out", str(vout)]
+        # a silent excerpt without a range: refused (its place in the song can't be measured)
+        p = run(base + ["--vertical", str(silent)], cwd=proj, ok=(1,))
+        assert "--vertical-range" in p.stdout + p.stderr
+        # with the range: that span of the master, flagged as unmeasured rather than "in sync"
+        run(base + ["--vertical", str(silent), "--vertical-range", "24"], cwd=proj)
+        f = json.loads((vout / "DELIVERY.json").read_text())["files"][0]
+        assert f["song_start"] == 24.0 and f["sync_ok"] is None, f
+        loc = json.loads(run([TEMPOVISION, "master", "locate", f["path"]], cwd=proj).stdout)
+        assert loc["match"] and abs(loc["starts_at"] - 24.0) < 0.01, loc
+        # an excerpt with its own audio is placed by matching it, and its sync is measured
+        run(base + ["--vertical", str(voiced)], cwd=proj)
+        f = json.loads((vout / "DELIVERY.json").read_text())["files"][0]
+        assert f["song_start_from"] == "matched" and abs(f["song_start"] - 24.0) < 0.04 and f["sync_ok"] is True, f
+        # a range that contradicts the render's own audio is refused
+        run(base + ["--vertical", str(voiced), "--vertical-range", "0"], cwd=proj, ok=(1,))
+    _()
+
+    @test("master: a new mix 27 ms early is measured, refused by deliver, and aligned back to 0")
+    def _():
+        song = next((proj / "input").glob("song.*"))
+        early = proj / "renders" / "new_mix.wav"
+        run(["ffmpeg", "-v", "error", "-y", "-i", str(song), "-af", "atrim=start=0.027,asetpts=PTS-STARTPTS,volume=0.8",
+             "-c:a", "pcm_s16le", str(early)])
+        r = json.loads(run([TEMPOVISION, "master", "compare", str(early), "--json"], cwd=proj).stdout)
+        assert r["same_song"] and abs(r["offset_ms"] + 27) <= 2, r
+        run([TEMPOVISION, "deliver", str(draft), "--targets", "youtube", "--master", str(early), "--out",
+             str(proj / "renders" / "mtest")], cwd=proj, ok=(1,))
+        aligned = run([TEMPOVISION, "master", "align", str(early)], cwd=proj).stdout.strip().splitlines()[-1]
+        r = json.loads(run([TEMPOVISION, "master", "compare", aligned, "--json"], cwd=proj).stdout)
+        assert abs(r["offset_ms"]) <= 1.0, r
+        run([TEMPOVISION, "deliver", str(draft), "--targets", "youtube", "--master", aligned, "--out",
+             str(proj / "renders" / "mtest")], cwd=proj)
     _()
 
     @test("doctor turns the brief into grouped requirements")

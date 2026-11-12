@@ -2,6 +2,17 @@
 # /// script
 # requires-python = ">=3.10,<3.14"
 # dependencies = ["numpy>=1.24", "soundfile>=0.12", "torch>=2.1,<2.9", "torchaudio>=2.1,<2.9", "demucs>=4.0.1"]
+#
+# On Windows and x86-64 Linux, PyPI's torch is the CPU build: take the CUDA build instead (it runs on CPU too), so an
+# NVIDIA GPU is actually used.
+# [[tool.uv.index]]
+# name = "pytorch-cu124"
+# url = "https://download.pytorch.org/whl/cu124"
+# explicit = true
+#
+# [tool.uv.sources]
+# torch = [{ index = "pytorch-cu124", marker = "sys_platform == 'win32' or (sys_platform == 'linux' and platform_machine == 'x86_64')" }]
+# torchaudio = [{ index = "pytorch-cu124", marker = "sys_platform == 'win32' or (sys_platform == 'linux' and platform_machine == 'x86_64')" }]
 # ///
 """Separate the song into stems with Demucs (htdemucs): vocals, drums, bass, other.
 

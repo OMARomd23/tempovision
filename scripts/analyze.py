@@ -10,6 +10,12 @@
   tempovision analyze --file SONG            analyse any file (no project needed); prints JSON
   tempovision analyze --beats-per-bar 3      for songs in 3/4 or 6/8
   tempovision analyze --downbeat-offset 1    shift the bar grid by N beats if the downbeats are off
+  tempovision analyze --bpm 75               force the tempo when the detected one is a related tempo (x2, x3/4 ...)
+
+The detected tempo is checked against its related tempi (x2, x1/2, x3/4, x4/3, x3/2, x2/3): each is scored by how
+much more onset strength (drum stem when present) lands on its beats than between them, window by window. A
+clearly better relative replaces the detection (tempo.corrected_from says so), and a close one is reported as
+tempo.ambiguous with the candidates, so a wrong grid is caught before any cut is timed to it.
 
 Uses stems from analysis/stems/ when present (tempovision stems), for per-stem onsets and energy.
 """
@@ -55,14 +61,77 @@ def low_band_onsets(y, sr):
     return librosa.onset.onset_strength(S=librosa.power_to_db(low), sr=sr, hop_length=HOP)
 
 
-def rhythm(y, sr, beats_per_bar: int, downbeat_offset: int, bass_y=None):
+RELATED = (1.0, 2.0, 0.5, 0.75, 4 / 3, 1.5, 2 / 3)
+
+
+def grid_score(env: np.ndarray, period_f: float, win_f: int) -> float:
+    """How strongly onsets land on a beat grid of this period (frames) rather than halfway between its beats.
+
+    Per window (so a slightly drifting tempo still fits), the best phase's mean onset strength on the beats minus
+    the mean halfway between them, normalised by the window's mean; averaged over windows weighted by loudness.
+    A tempo twice too fast puts its "between" points on real beats; one too slow or a 3:4 relative misses half of
+    them: both score lower than the true tempo.
+    """
+    if period_f < 2 or len(env) < 2 * period_f:
+        return 0.0
+    n_ph = 16
+    scores, weights = [], []
+    for w0 in range(0, max(1, len(env) - win_f // 2), max(1, win_f // 2)):
+        w = env[w0: w0 + win_f]
+        if len(w) < 4 * period_f:
+            continue
+        m = float(w.mean())
+        if m <= 1e-9:
+            continue
+        best = -np.inf
+        for k in range(n_ph):
+            ph = k * period_f / n_ph
+            on = np.arange(ph, len(w) - 1, period_f)
+            off = on + period_f / 2
+            off = off[off < len(w) - 1]
+            if len(on) < 3 or len(off) < 3:
+                continue
+            best = max(best, (w[np.round(on).astype(int)].mean() - w[np.round(off).astype(int)].mean()) / m)
+        if np.isfinite(best):
+            scores.append(best)
+            weights.append(m)
+    return float(np.average(scores, weights=weights)) if scores else 0.0
+
+
+def tempo_candidates(env: np.ndarray, sr: int, bpm: float, lo: float = 55.0, hi: float = 200.0) -> list[dict]:
+    fps = sr / HOP
+    win_f = int(round(12 * fps))
+    out = []
+    for r in RELATED:
+        b = bpm * r
+        if lo <= b <= hi:
+            out.append({"bpm": round(b, 2), "ratio": round(r, 3), "score": round(grid_score(env, 60.0 * fps / b, win_f), 4)})
+    return sorted(out, key=lambda c: -c["score"])
+
+
+def rhythm(y, sr, beats_per_bar: int, downbeat_offset: int, bass_y=None, drums_y=None, force_bpm: float | None = None):
     import librosa
 
     duration = len(y) / sr
     onset_env = librosa.onset.onset_strength(y=y, sr=sr, hop_length=HOP, aggregate=np.median)
-    tempo_est, beat_frames = librosa.beat.beat_track(onset_envelope=onset_env, sr=sr, hop_length=HOP, units="frames")
-    beat_times = librosa.frames_to_time(beat_frames, sr=sr, hop_length=HOP)
+    kw = {"bpm": force_bpm, "tightness": 400} if force_bpm else {}
+    tempo_est, beat_frames = librosa.beat.beat_track(onset_envelope=onset_env, sr=sr, hop_length=HOP, units="frames", **kw)
     tempo = float(np.atleast_1d(tempo_est)[0])
+    # check the detection against its related tempi on the drum stem when there is one (the beat lives there)
+    check_env = librosa.onset.onset_strength(y=drums_y, sr=sr, hop_length=HOP) if drums_y is not None else onset_env
+    cands = tempo_candidates(check_env, sr, tempo) if tempo > 0 else []
+    corrected_from, ambiguous = None, False
+    if cands and not force_bpm:
+        mine = next(c for c in cands if c["ratio"] == 1.0)
+        best = cands[0]
+        if best is not mine and best["score"] > 1.15 * max(mine["score"], 1e-6) and best["score"] > 0.05:
+            corrected_from = round(tempo, 2)
+            tempo_est, beat_frames = librosa.beat.beat_track(onset_envelope=onset_env, sr=sr, hop_length=HOP, units="frames",
+                                                             bpm=best["bpm"], tightness=400)
+            tempo = float(np.atleast_1d(tempo_est)[0])
+        top = cands[0]["score"]
+        ambiguous = len(cands) > 1 and cands[1]["score"] > 0.9 * top
+    beat_times = librosa.frames_to_time(beat_frames, sr=sr, hop_length=HOP)
 
     ibi = np.diff(beat_times)
     stable, conf, period = False, 0.0, (60.0 / tempo if tempo > 0 else 0.5)
@@ -128,7 +197,9 @@ def rhythm(y, sr, beats_per_bar: int, downbeat_offset: int, bass_y=None):
         bars.append({"index": i + 1, "start": round(float(start), 3), "end": round(end, 3),
                      "extrapolated": bool(start < det_lo or start > det_hi)})
     return {
-        "tempo": {"bpm": round(tempo, 2), "confidence": round(conf, 2), "stable": stable, "period": round(period, 4)},
+        "tempo": {"bpm": round(tempo, 2), "confidence": round(conf, 2), "stable": stable, "period": round(period, 4),
+                  "candidates": cands, "ambiguous": bool(ambiguous), "corrected_from": corrected_from,
+                  "forced": bool(force_bpm), "checked_on": "drums" if drums_y is not None else "mix"},
         "beats": r3(detected),
         "grid": r3(grid),
         "beat_frames": beat_frames,
@@ -365,7 +436,8 @@ def plot(path_png, duration, energies, rh, secs, onsets, rate):
 # ---------------------------------------------------------------- main
 
 
-def analyse(path: Path, stems_dir: Path | None, beats_per_bar: int, downbeat_offset: int, quick: bool):
+def analyse(path: Path, stems_dir: Path | None, beats_per_bar: int, downbeat_offset: int, quick: bool,
+            force_bpm: float | None = None):
     info(f"decoding {path.name} …")
     y = decode_audio(path, sr=SR)
     duration = len(y) / SR
@@ -380,7 +452,7 @@ def analyse(path: Path, stems_dir: Path | None, beats_per_bar: int, downbeat_off
                 stems[n] = stems[n][: len(y)] if len(stems[n]) >= len(y) else np.pad(stems[n], (0, len(y) - len(stems[n])))
     bass_y = (stems.get("drums", 0) + stems.get("bass", 0)) if ("drums" in stems or "bass" in stems) else None
     info("tempo and beats …")
-    rh = rhythm(y, SR, beats_per_bar, downbeat_offset, bass_y)
+    rh = rhythm(y, SR, beats_per_bar, downbeat_offset, bass_y, stems.get("drums"), force_bpm)
     info("energy …")
     energies, smooths = {}, {}
     e, sm, rate = energy_curve(y, SR)
@@ -426,6 +498,14 @@ def quick_summary(r) -> str:
     t = r["tempo"]
     lines = [f"Duration {fmt_time(r['duration'])} · {t['bpm']} BPM (confidence {t['confidence']}, "
              f"{'steady' if t['stable'] else 'variable'} tempo) · {len(r['bars'])} bars of {r['beats_per_bar']}"]
+    if t.get("forced"):
+        lines.append("  tempo forced with --bpm")
+    if t.get("corrected_from"):
+        lines.append(f"  ⚠️ tempo corrected from {t['corrected_from']} BPM: its beats missed the onsets that "
+                     f"{t['bpm']} BPM hits (checked on the {t.get('checked_on', 'mix')})")
+    if t.get("ambiguous"):
+        alts = ", ".join(f"{c['bpm']} ({c['score']:.2f})" for c in (t.get("candidates") or [])[:3])
+        lines.append(f"  ⚠️ tempo ambiguous: {alts}. Tap along or check the drum stem; force with --bpm")
     if r.get("key"):
         lines.append(f"Key (estimate): {r['key']['name']}")
     if r.get("loudness"):
@@ -451,6 +531,7 @@ def main(argv=None):
     p.add_argument("--quick", action="store_true", help="fast summary for the interview")
     p.add_argument("--beats-per-bar", type=int, default=None)
     p.add_argument("--downbeat-offset", type=int, default=0)
+    p.add_argument("--bpm", type=float, help="force the tempo (when the detection picked a related tempo)")
     p.add_argument("--no-plot", action="store_true")
     a = p.parse_args(argv)
 
@@ -459,7 +540,7 @@ def main(argv=None):
     path = Path(a.file).expanduser() if a.file else song_path(project, state)
     bpb = a.beats_per_bar or int(state.get("beats_per_bar", 4) or 4)
     stems_dir = (project / "analysis" / "stems") if project else None
-    result, energies, rate = analyse(path, stems_dir, bpb, a.downbeat_offset, a.quick)
+    result, energies, rate = analyse(path, stems_dir, bpb, a.downbeat_offset, a.quick, a.bpm)
 
     if a.quick:
         print(quick_summary(result))

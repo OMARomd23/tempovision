@@ -64,9 +64,11 @@ Optional keys, entered in the plugin settings (`/plugin` → Tempovision → con
 tempovision project   init · status · import · phase · gate · set · decide · wait · resume · spend · section · autopilot
 tempovision doctor    machine check; BRIEF.md → SETUP.md checklist; --network probes
 tempovision analyze   tempo, beat grid through beat-less intros, downbeats, bars, sections (A/B/C by similarity),
-                  energy and onsets per stem, key, LUFS/true peak, overview plot; --quick for the interview
-tempovision stems     Demucs vocals / drums / bass / other
-tempovision align     the artist's lyrics → word timing: CTC forced alignment (wav2vec2) → transcript-anchored →
+                  energy and onsets per stem, key, LUFS/true peak, overview plot; --quick for the interview;
+                  the tempo checked against its relatives (x2, x1/2, x3/4, x4/3 ...), --bpm to force one
+tempovision stems     Demucs vocals / drums / bass / other (CUDA PyTorch on Windows/Linux: an NVIDIA GPU is used)
+tempovision align     the artist's lyrics → word timing: CTC forced alignment (wav2vec2) → multilingual MMS (1,100+
+                  languages, romanised lyrics such as Arabizi, code-switching; GPU) → transcript-anchored →
                   stable-ts → imported (LRC/SRT/taps) → heuristic; QA flags; preview, inspect, range, nudge, exports
 tempovision songmap   SONGMAP.md: sections named from lyric tags, bars, frames, energy, hooks, hit list, gaps
 tempovision timing    lyrics, beats, sections, hits → HyperFrames (data + a lint-clean lyrics composition) or
@@ -77,7 +79,10 @@ tempovision qa        format, audio present, A/V offset vs master, loudness vs m
                   cuts vs beats and sung words, lyric cues (stale exports, nothing appearing when a line is sung)
 tempovision assets    licence ledger: add, fetch, search (Openverse, Pexels, Pixabay, NASA, Met, AIC, Commons), check, credits
 tempovision deliver   ProRes master, YouTube, vertical, square, Spotify Canvas, thumbnail, poster from the final
-                  render + the untouched master audio; each file re-checked for duration and sync
+                  render + the untouched master audio; excerpt renders placed in the song (range or audio match);
+                  sync measured against the render's own audio; free-space check
+tempovision master    a new mix or master: compare it with the song the film was timed to (ms offset, MP3 encoder
+                  delay), align it, locate an excerpt in the song
 ```
 
 ## Autonomy

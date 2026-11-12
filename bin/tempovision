@@ -22,6 +22,7 @@ tempovision <command> [options]        (tempovision <command> --help for details
   qa        measured QA on a render (format, sync, loudness, black/freeze, cuts, lyric cues)
   assets    the licence ledger: add, fetch, search, check, credits
   deliver   masters and platform files from the final render + the untouched master audio
+  master    a new mix or master: compare it with the song the film was timed to, align it, locate an excerpt
   version   print the plugin version
 EOF
 }
@@ -34,7 +35,7 @@ fi
 cmd="${1:-help}"
 shift || true
 case "$cmd" in
-  project|doctor|analyze|stems|align|songmap|timing|palette|sheet|qa|assets|deliver)
+  project|doctor|analyze|stems|align|songmap|timing|palette|sheet|qa|assets|deliver|master)
     exec uv run --quiet --script "$SCRIPTS/$cmd.py" "$@"
     ;;
   version|--version|-v)

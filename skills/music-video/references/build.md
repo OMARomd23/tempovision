@@ -106,6 +106,13 @@ then show the person. Approved style frames become the first scenes of the build
 - Final: full resolution, high quality, to `renders/final/master_video.mov` (or `.mp4`), without trusting the
   engine's audio encode: `tempovision deliver` muxes the master audio afresh.
 - Long renders run in the background; keep working on the next section meanwhile, or on the delivery notes.
+- One render at a time, with few workers on a 16 GB machine (`--workers 2` for HyperFrames): two renders side by
+  side, or a preview open during a render, can exhaust memory and get a render killed mid-way. Check free disk
+  before a ProRes render.
+- Before a final render, `git status`: the preview's editor writes what you drag into the composition files.
+- Transitions between segments: during a wipe or a dissolve the outgoing side must keep showing the previous
+  shot. When shots are chained on one board, the next shot's elements may start drawing before its start time
+  and flash under the transition; read the frames either side of every transition on a sheet.
 
 ## When the engine is not enough
 

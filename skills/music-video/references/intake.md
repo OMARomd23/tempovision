@@ -93,7 +93,10 @@ best palette source: offer to sample it (`references/look.md` "Palette from cove
   cap.
 - **Deadline**, and whether a draft is wanted earlier.
 - **Hardware**: NVIDIA GPU or not (stems and alignment run on CPU but slower); OS.
-- **Credits** at the end, if wanted (director, artist, label).
+- **Credits** at the end, if wanted (mix and recording, animation and video, director, label), with each name or
+  handle exactly as it should be written.
+- **Their own artwork**: which figures or elements are canon (never redrawn by a model), and anything they
+  already know they don't want generated (realistic people, a product shown loudly).
 
 ## Round 6: how you work together
 

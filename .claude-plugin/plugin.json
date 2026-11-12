@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "tempovision",
   "displayName": "Tempovision — music video studio",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Directs and produces lyric music videos from your song: interviews you, sets up tools, maps the song, writes the treatment, sources assets, builds, self-reviews and delivers.",
   "author": {
     "name": "Tempovision contributors"

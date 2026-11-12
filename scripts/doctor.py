@@ -158,11 +158,14 @@ def check_ml(language: str) -> list[dict]:
                     "installed" if m.exists() else "not installed yet",
                     "vocal stem for accurate lyric timing; per-stem energy (drums, bass, vocals) to drive layers",
                     "tempovision stems --install", "~2.5 GB (PyTorch) + 80 MB model; 3-10 min"))
-    m2 = marker(f"align-{language}")
-    out.append(item("align", f"Lyric alignment model ({language})", OK if m2.exists() else MISSING,
-                    "installed" if m2.exists() else "not installed yet",
-                    "word-level lyric timing from the artist's own lyrics",
-                    f"tempovision align --install --language {language}", "~2.5 GB shared with stems + ~360 MB model"))
+    m2, m3 = marker(f"align-{language}"), marker("align-mms")
+    have = [n for n, m in ((language, m2), ("multilingual MMS", m3)) if m.exists()]
+    out.append(item("align", f"Lyric alignment model ({language})", OK if have else MISSING,
+                    "installed: " + ", ".join(have) if have else "not installed yet",
+                    "word-level lyric timing from the artist's own lyrics (MMS covers 1,100+ languages, romanised "
+                    "lyrics such as Arabizi, and code-switching)",
+                    f"tempovision align --install --language {language}   (or --method mms --install)",
+                    "~2.5 GB shared with stems + ~360 MB model"))
     return out
 
 
@@ -170,7 +173,8 @@ def check_gpu() -> dict:
     if shutil.which("nvidia-smi"):
         rc, o = sh(["nvidia-smi", "--query-gpu=name,memory.total", "--format=csv,noheader"])
         if rc == 0 and o:
-            return item("gpu", "GPU acceleration", OK, o.splitlines()[0], "stems and alignment 5-20x faster", "")
+            return item("gpu", "GPU acceleration", OK, o.splitlines()[0],
+                        "stems and alignment 5-20x faster (stems and the MMS aligner install CUDA PyTorch)", "")
     if platform.system() == "Darwin" and platform.machine() == "arm64":
         return item("gpu", "GPU acceleration", OK, "Apple Silicon (MPS)", "stems faster", "")
     return item("gpu", "GPU acceleration", WARN, "CPU only", "stems ~1-3x the song length on CPU; fine, just slower",
