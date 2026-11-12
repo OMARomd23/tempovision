@@ -191,6 +191,10 @@ Each rule is here because skipping it produces the look of a generated video.
    only for the final file.
 10. **Commit before you fix.** Each locked section is a git commit, so a change that makes things worse can be
     undone.
+11. **The person's own artwork is canon.** Characters from their cover or artwork are never redrawn by a model:
+    animate the original (image-to-video from the cleaned file, or its layers moved in the engine), and reject any
+    clip that changes them (new ears, irises, a torso, a realistic hand). Generated scenes stay where a figure is
+    small, seen from behind or partial (`references/assets.md`).
 
 ## When something goes wrong
 
@@ -203,6 +207,11 @@ Each rule is here because skipping it produces the look of a generated video.
   replace the shot with something you can draw.
 - The person changes direction: update `BRIEF.md` and `SPEC.md` first, log the change, then rebuild only what
   it touches.
+- A new mix or master arrives: `tempovision master compare NEW` before anything else. "The same song" can still sit
+  tens of ms off the file the film was timed to (an MP3's encoder delay); `tempovision master align NEW` fixes it,
+  then deliver with `--master` (`references/finishing.md`).
+- The person reviews in a player and sends screenshots: read the timecode in each, find the shot at that song time,
+  and fix what the frame shows, even if it was "intended" (a word running out of frame reads as clipped).
 
 ## Files in this skill
 

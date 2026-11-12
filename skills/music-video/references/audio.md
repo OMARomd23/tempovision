@@ -32,6 +32,12 @@ the beat grid and the section boundaries on one time axis. It is the single best
 - **Beats** are reliable on rhythmic music with drums. On rubato, ambient or acoustic stretches the tracker
   invents a metronome, often at double or half tempo: `tempo.confidence` below 0.5 or `tempo.stable: false`
   means cut on phrases and onsets there, not on the grid. Compare the beat grid to `onsets.drums` in the plot.
+- **Related tempi.** The tracker can lock onto a relative of the real tempo: ×2, ×½, and on half-time rap
+  beats ×4/3 (a 75 BPM song read as 99 BPM). `analyze` scores each relative by how much onset strength lands
+  on its beats versus between them, on the drum stem when it exists (run `tempovision stems` first). A clearly
+  better relative replaces the detection (`tempo.corrected_from`); a close one sets `tempo.ambiguous` with the
+  candidates. When ambiguous, look at the drum onsets on the overview plot, ask the person to tap a bar, and
+  force it with `tempovision analyze --bpm 75`. Count the bars too: sections come in 4s and 8s.
 - **Downbeats** are estimated from where accents fall. Check them against the first chorus and a section
   change: a bar boundary should land on each. If they are a beat off, `tempovision analyze --downbeat-offset 1`.
 - **Section labels** group by sound, not by meaning. Rename them with the lyrics in hand (`songmap` does a first
@@ -59,11 +65,19 @@ order it tries them, recorded as `method` in `timing.json`:
 
 1. `forced`: WhisperX's wav2vec2 forced alignment of the full lyric text against the vocals. Word times
    within ~50–100 ms on clean vocals.
-2. `anchored`: Whisper transcribes, lines are matched to the transcript, and each line is force-aligned in its
-   window. Used when (1) drifts (long instrumental gaps, ad-libs not in the lyrics).
-3. `stable-ts`: the stable-ts aligner, when WhisperX is unavailable.
-4. `imported`: the person's own timing from an `.lrc`, `.srt` or a tap file (`tempovision align --taps`).
-5. `heuristic`: lines spread over vocal activity by syllable count. Marked low confidence; never ship
+2. `mms`: Meta's multilingual MMS aligner (1,100+ languages, romanised text), with a wildcard before every
+   line that absorbs vocals missing from the lyrics (ad-libs, an unwritten repeat) instead of stretching the
+   neighbouring words. The choice for languages without a wav2vec2 model, lyrics in Latin script for a language
+   usually written in another (Darija or Arabic in Arabizi: digits inside words are read as letters, a word made
+   of digits is a wildcard), and code-switched lyrics. It installs CUDA PyTorch on Windows and Linux and uses an
+   NVIDIA GPU when there is one. On Deux Faces (Darija + French in Arabizi) the French wav2vec2 model flagged
+   42 of 69 lines and put the first line at 0:00; MMS flagged 21, all low scores on one-letter words.
+3. `anchored`: Whisper transcribes, lines are matched to the transcript, and each line is force-aligned in its
+   window. Used when (1) drifts (long instrumental gaps, ad-libs not in the lyrics). Whisper transcribes poorly
+   in languages it barely knows (Darija): prefer `mms` there.
+4. `stable-ts`: the stable-ts aligner, when WhisperX is unavailable.
+5. `imported`: the person's own timing from an `.lrc`, `.srt` or a tap file (`tempovision align --taps`).
+6. `heuristic`: lines spread over vocal activity by syllable count. Marked low confidence; never ship
    word-level animation on it, only line-level.
 
 ### Lyrics file format
@@ -84,10 +98,19 @@ Then the preview: `tempovision align --preview` burns plain, centred karaoke (cu
 song. Send it and ask "do the words land on time? note any line that is early or late." This is the one check
 only a human can do.
 
+Look for vocals that aren't in the lyrics: a stretch of vocal activity with no line over it (after a chorus, in
+an outro) is an unwritten repeat, a second voice or ad-libs. Ask the person whether it should be on screen; if
+it should, they add it to the lyrics and the alignment runs again.
+
+When the person edits the lyrics after alignment (a word added, a line break moved because two lines are sung in
+one breath), import the new file (`tempovision project import FILE --as lyrics`) and re-align; the display text
+always comes from their file.
+
 ### When alignment fails
 
 Dense mixes, heavy vocal effects, harmonies, rap at 6+ syllables per second, or a language without an
-alignment model. In order: re-run on the vocal stem with `--model` larger; switch to `anchored`; align only
+alignment model. In order: re-run on the vocal stem; a language without a model, romanised lyrics or several
+languages in one song: `--method mms`; switch to `anchored`; align only
 the chorus and the hero lines and keep the rest at line level; import the person's timing (most DAWs export
 markers; LRC files from their distributor often exist); last, have them tap: `tempovision align --taps` prints a
 tap-sheet procedure they can do in two minutes in any browser.

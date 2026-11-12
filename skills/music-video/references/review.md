@@ -31,6 +31,14 @@ purpose, add `{"id": "l12", "why": "..."}` to the manifest's `overrides`.
 
 Numbers win over your eye when they disagree: a cue 3 frames late looks fine on a sheet.
 
+**Every word on screen, measured.** When the lyrics are drawn by your own code (a canvas engine, a custom
+component), have the draw call record each word's box and opacity per frame (a trace you switch on in a debug
+build), then seek the composition headlessly to each word's sung time and check that the word is fully drawn,
+opaque, not erased, and inside title-safe, and that each line stays until it has been read. Deux Faces ran this
+on every change (314/314 words in 16:9, 82/82 in the 9:16 cut): it caught words that slid under the frame edge
+after a layout change, which no sheet showed. Also check the frames right after every cut for a frozen stretch
+(`ffmpeg freezedetect`): a shot that starts still for 0.5 s reads as lag.
+
 ## 2. Look
 
 ```bash
